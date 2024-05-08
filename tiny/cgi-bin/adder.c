@@ -21,6 +21,7 @@
 //str처리
 #include <string.h>
 
+char* RESULT = "{result}";
 
 int main(void) {
   struct stat sbuf;
@@ -39,13 +40,15 @@ int main(void) {
   srcp = Mmap(0,sbuf.st_size,PROT_READ,MAP_PRIVATE,srcfd,0);
   Close(srcfd);
 
+  char* resultp = strstr(srcp,RESULT);
+
   //환경변수로 부터 인수를 가져와 정수형으로 변환
   if((buf=getenv("QUERY_STRING"))!=NULL){
+    *(resultp) = ' '; 
+    printf("Connection: close\r\n");
+    printf("Content-length: %d\r\n",(int)sbuf.st_size);
+    printf("Content-type: text/html\r\n\r\n");
     if(strcmp(buf,"")==0){
-      printf("Connection: close\r\n");
-      printf("Content-length: %d\r\n",(int)sbuf.st_size);
-      printf("Content-type: text/html\r\n\r\n");
-      // printf("fafadqw");
       printf("%s",srcp);
       Munmap(srcp,sbuf.st_size);
       fflush(stdout);

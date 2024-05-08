@@ -21,7 +21,20 @@
 //str처리
 #include <string.h>
 
-char* RESULT = "{result}";
+#define RESULT "{result}"
+
+void emptyId(char* id){
+  while(*id!='}'){
+    *id = ' ';
+    id += 1;
+  }
+  *id = ' ';
+}
+
+void replaceId(char* id, char* des){
+  emptyId(id);
+  strcpy(id,des);
+}
 
 int main(void) {
   struct stat sbuf;
@@ -37,42 +50,43 @@ int main(void) {
         perror("stat");
         exit(0);
     }
-  srcp = Mmap(0,sbuf.st_size,PROT_READ,MAP_PRIVATE,srcfd,0);
+  srcp = malloc(sbuf.st_size);
+  rio_t rp;
+  Rio_readinitb(&rp,srcfd);
+  Rio_readnb(&rp,srcp,sbuf.st_size);
   Close(srcfd);
 
   char* resultp = strstr(srcp,RESULT);
 
   //환경변수로 부터 인수를 가져와 정수형으로 변환
   if((buf=getenv("QUERY_STRING"))!=NULL){
-    *(resultp) = ' '; 
     printf("Connection: close\r\n");
     printf("Content-length: %d\r\n",(int)sbuf.st_size);
     printf("Content-type: text/html\r\n\r\n");
+    //만약 인수가 들어있지 않다면 초기화 해준다.
     if(strcmp(buf,"")==0){
+      emptyId(resultp); 
       printf("%s",srcp);
-      Munmap(srcp,sbuf.st_size);
       fflush(stdout);
+      free(srcp);
       exit(0);
     }
     p = strchr(buf,'&');
     *p = '\0';
     strcpy(arg1,buf);
     strcpy(arg2,p+1);
+    p = strchr(arg1,'=');
+    strcpy(arg1,p+1);
+    p = strchr(arg2,'=');
+    strcpy(arg2,p+1);
     n1 = atoi(arg1);
     n2 = atoi(arg2);
   }
-  sprintf(content,"QUERY_STRING=%s", buf);
-  sprintf(content,"Welcom to add.com: ");
-  sprintf(content,"%sTHE Internet addition portal. \r\n<p>", content);
-  sprintf(content,"%sThe answer is : %d + %d = %d\r\n<p>",content,n1,n2,n1+n2);
-  sprintf(content,"%sThanks for visiting!\r\n", content);
-
-  printf("Connection: close\r\n");
-  printf("Content-length: %d\r\n", (int)strlen(content));
-  printf("Content-type: text/html\r\n\r\n");
-  printf("%s",content);
+  sprintf(content,"The answer is : %d + %d = %d",n1,n2,n1+n2);
+  replaceId(resultp,content);
+  printf("%s",srcp);
   fflush(stdout);
-
+  free(srcp);
   exit(0);
 }
 /* $end adder */
